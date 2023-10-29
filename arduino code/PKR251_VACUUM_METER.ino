@@ -10,8 +10,8 @@
 
 
 // Libraries import
-#include "ADS1X15.h"                            // External ADC ADS1115
-#include <OLED_I2C.h>                           // External OLED display
+#include "ADS1X15.h"                            // External ADC ADS1115 - Copyright (c) 2013-2023 Rob Tillaart
+#include <OLED_I2C.h>                           // External OLED display - Copyright (c) 2010-2023 Rinky-Dink Electronics, Henning Karlsen
 
 // Librarie config
 ADS1115 ADS(0x48);                              // Set ADS1115
