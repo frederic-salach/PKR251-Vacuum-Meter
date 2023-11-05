@@ -10,7 +10,7 @@
                 !! This program uses the ADS1X15.h librarie from Copyright (c) 2013-2023 Rob Tillaart and the LED_I2C.h librarie from Copyright
                 !! (c) 2010-2023 Rinky-Dink Electronics, Henning Karlsen.
  * @author      Frederic Salach <frederic.salach@gmail.com>
- * @version     1.2 dev
+ * @version     1.1
  * @copyright   PKR_251_Vacuum_Meter.ino © 2023 by Frédéric Salach is licensed under Attribution-NonCommercial-ShareAlike 4.0 International 
  */
 
@@ -26,56 +26,53 @@ OLED OLED_Display(SDA, SCL);  // Set OLED Display
 extern uint8_t SmallFont[];   // OLED font import
 
 // Variable declaration
-uint16_t Current_Time = 0;   // Storage of the current time from millis()
-uint16_t Previous_Time = 0;  // Storage of the previous time from millis()
-int16_t ADC_Voltage;         // Storage of the ADC voltage measurement value
-float Pressure;              // Storage of the calculated pressure value from the ADC Voltage
-int8_t Error_State;          // Storage of the gauge error state
-int8_t Range_State;          // Storage of the gauge range state
-bool Pressure_State;         // Storage of the Pressure Interlock state
-bool Interlock_State;        // Storage of the Interlock output state
-/////////////////////
-int State_SW;                   //
-int State_CLK;                  //
-int State_DT;                   //
-int Previous_State_SW;          // Cette variable nous permettra de stocker le dernier état de la ligne SW lu, afin de le comparer à l'actuel
-int Previous_State_CLK;         // Cette variable nous permettra de stocker le dernier état de la ligne CLK lu, afin de le comparer à l'actuel
-uint16_t compteur;                   //
-uint16_t Current_Time_Bp = 0;   // Storage of the current time from millis()
-uint16_t Previous_Time_Bp = 0;  // Storage of the previous time from millis()
-
-
+///////////////////// Pressure Process
+uint16_t Current_Time_Dp = 0;   // Storage of the current time from millis()
+uint16_t Previous_Time_Dp = 0;  // Storage of the previous time from millis()
+int16_t ADC_Voltage;            // Storage of the ADC voltage measurement value
+float Pressure;                 // Storage of the calculated pressure value from the ADC Voltage
+int8_t Error_State;             // Storage of the gauge error state
+int8_t Range_State;             // Storage of the gauge range state
+bool Pressure_State;            // Storage of the Pressure Interlock state
+bool Interlock_State;           // Storage of the Interlock output state
+///////////////////// Menu
+uint16_t Current_Time_Dp_Bp = 0;   // Storage of the current time from millis()
+uint16_t Previous_Time_Dp_Bp = 0;  // Storage of the previous time from millis()
+bool Previous_State_SW;            // Storage of the the button SW line previous state
+bool Previous_State_CLK;           // Storage of the button CLK line previous state
+bool State_SW;                     // Storage of the button SW line state
+bool State_CLK;                    // Storage of the button CLK line state
+bool State_DT;                     // Storage of the button DT line state
+///////////////////// In EEPROM
+uint16_t INTERLOCK_PRESSURE_LOW;   //
+uint16_t INTERLOCK_PRESSURE_HIGH;  //
 
 // Input/Output declatation
 // Arduino Board
 const uint8_t INTERLOCK_PIN = 3;  // Definition of the interlock output pin (3)
 const uint8_t ON_BOARD_LED = 13;  // Definition of the interlock output pin (13)
-const uint8_t Bp_SW = 5;          // La pin D2 de l'Arduino recevra la ligne SW du module KY-040
-const uint8_t Bp_CLK = 6;         // La pin D3 de l'Arduino recevra la ligne CLK du module KY-040
-const uint8_t Bp_DT = 7;          // La pin D4 de l'Arduino recevra la ligne DT du module KY-040
+const uint8_t Bp_SW = 5;          // Definition of the SW line input pin (5)
+const uint8_t Bp_CLK = 6;         // Definition of the CLK line input pin (6)
+const uint8_t Bp_DT = 7;          // Definition of the DT line input pin (7)
 // ADC Board
 const uint8_t GAUGE_SIGNAL_PIN = 0;  // Definition of the analog input pin for the gauge output (1)
 
-// User configurable variables
-const uint16_t ADC_RESOLUTION = 32767;         // Definition of the ADC resolution (For ADS1115, 32767)
-const uint16_t ADC_RANGE = 4096;               // Definition of the ADC range [mV] (For ADS115 with a gain of 1, 4096)
-const uint16_t ADC_GAIN = 1;                   // Definition of the ADC Gain (For ADS115 1 for input up 4096 mV)
-const uint8_t INPUT_ATTENUATION = 3;           // Defination of the input attenuation (3)
-const uint16_t SENSOR_ERROR_LOW = 500;         // Definition of the low limit output for gauge error detection [mV] (For PKR 251, 500)
-const uint16_t SENSOR_ERROR_HIGH = 9500;       // Definition of the high limit output for gauge error detection [mV] (For PKR 251, 9500)
-const uint16_t OUT_OFF_RANGE_LOW = 1820;       // Definition of the low limit output for gauge out of range detection [mV] (For PKR 251, 1820)
-const uint16_t OUT_OFF_RANGE_HIGH = 8600;      // Definition of the low limit output for gauge error [mV] (For PKR 251, 500)
-const float SENSOR_PRESSURE_CONSTANT = 1.667;  // Definition of the sensor constant for pressure conversion (For PKR 251, 1.667)
-const float SENSOR_UNIT_FACTOR = 9.333;        // Definition of the sensor constant for pressure unit conversion (For PKR 251 and Pa unit, 9.333)
-//const float INTERLOCK_PRESSURE_LOW = 80;       // Definition of the sensor constant for interlock low pressure value detection [Pa] (80)
-uint16_t INTERLOCK_PRESSURE_LOW;
-//const float INTERLOCK_PRESSURE_HIGH = 100.0;     // Definition of the sensor constant for interlock high pressure value detection [Pa] (100)
-uint16_t INTERLOCK_PRESSURE_HIGH;
+// Constant variables
+const uint16_t ADC_RESOLUTION = 32767;           // Definition of the ADC resolution (For ADS1115, 32767)
+const uint16_t ADC_RANGE = 4096;                 // Definition of the ADC range [mV] (For ADS115 with a gain of 1, 4096)
+const uint16_t ADC_GAIN = 1;                     // Definition of the ADC Gain (For ADS115 1 for input up 4096 mV)
+const uint8_t INPUT_ATTENUATION = 3;             // Defination of the input attenuation (3)
+const uint16_t SENSOR_ERROR_LOW = 500;           // Definition of the low limit output for gauge error detection [mV] (For PKR 251, 500)
+const uint16_t SENSOR_ERROR_HIGH = 9500;         // Definition of the high limit output for gauge error detection [mV] (For PKR 251, 9500)
+const uint16_t OUT_OFF_RANGE_LOW = 1820;         // Definition of the low limit output for gauge out of range detection [mV] (For PKR 251, 1820)
+const uint16_t OUT_OFF_RANGE_HIGH = 8600;        // Definition of the low limit output for gauge error [mV] (For PKR 251, 500)
+const float SENSOR_PRESSURE_CONSTANT = 1.667;    // Definition of the sensor constant for pressure conversion (For PKR 251, 1.667)
+const float SENSOR_UNIT_FACTOR = 9.333;          // Definition of the sensor constant for pressure unit conversion (For PKR 251 and Pa unit, 9.333)
 const char PRESSURE_UNIT[] = "Pa";               // Definition of the pressure unit displayed ("Pa")
 const char INIT_MESSAGE[] = "PFEIFFER PKR 251";  // Definition of the initialization message ("PFEIFFER PKR 251")
 const uint16_t SERIAL_SPEED = 9600;              // Definition of the serial connection speed [bps] (9600)
 const uint16_t SCREEN_REFRESH_DELAY = 500;       // Definition of the refresh screen delay [ms] (500)
-const uint16_t DEBOUNCE_DELAY = 150;             //
+const uint16_t DEBOUNCE_DELAY = 100;             // Definition of the debouce button delay [ms] (500)
 
 void setup() {
   /**
@@ -118,26 +115,26 @@ void setup() {
   Previous_State_SW = digitalRead(Bp_SW);
   Previous_State_CLK = digitalRead(Bp_CLK);
 
-  // Variables in EEPROM
+  // Read variables saved in EEPROM
   EEPROM.get(112, INTERLOCK_PRESSURE_HIGH);
   EEPROM.get(128, INTERLOCK_PRESSURE_LOW);
-
-  Serial.println(INTERLOCK_PRESSURE_HIGH);
-  Serial.println(INTERLOCK_PRESSURE_LOW);
-
-
 
   // Initialization delay
   delay(2500);
 }
 
 void loop() {
+  /**
+  * @fn          loop();
+  * @brief       Function loop.
+  */
+
   Pressure_Main();
 
   Read_Rotaty_Encoder();
 
-  Current_Time_Bp = millis();
-  if ((Current_Time_Bp - Previous_Time_Bp) > DEBOUNCE_DELAY) {
+  Current_Time_Dp_Bp = millis();
+  if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
 
     if (State_SW != Previous_State_SW) {
       Previous_State_SW = State_SW;
@@ -146,19 +143,27 @@ void loop() {
   }
 }
 
+
 void Menu() {
 
+  /**
+  * @fn          Menu();
+  * @brief       Function Menu.
+  */
+
   bool Menu_Boucle_State;
-  int Read_EEPROM;
+  uint16_t Read_EEPROM;
+  uint16_t compteur;
+
 
   OLED_Display.clrScr();
   OLED_Display.setFont(SmallFont);
-  OLED_Display.print("MENU", CENTER, 15);
+  OLED_Display.print("MENU", RIGHT, 5);
   OLED_Display.update();
 
   delay(1000);
 
-///// LEVEL 1 MENU
+  ///// LEVEL 1 MENU
   EEPROM.get(112, compteur);
 
   Menu_Boucle_State = true;
@@ -168,8 +173,8 @@ void Menu() {
   while (Menu_Boucle_State == true) {
     Read_Rotaty_Encoder();
 
-    Current_Time_Bp = millis();
-    if ((Current_Time_Bp - Previous_Time_Bp) > DEBOUNCE_DELAY) {
+    Current_Time_Dp_Bp = millis();
+    if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
       if (State_SW != Previous_State_SW) {
         Previous_State_SW = State_SW;
         Menu_Boucle_State = false;
@@ -192,14 +197,14 @@ void Menu() {
 
     OLED_Display.clrScr();
     OLED_Display.setFont(SmallFont);
-    OLED_Display.print("SET HIGH", RIGHT, 5);
+    OLED_Display.print("Set High Threshold", RIGHT, 5);
     OLED_Display.print(String(compteur), RIGHT, 15);
     OLED_Display.update();
   }
 
   OLED_Display.clrScr();
   OLED_Display.setFont(SmallFont);
-  OLED_Display.print("HIGH SETING", RIGHT, 5);
+  OLED_Display.print("SAVE", RIGHT, 5);
   OLED_Display.print(String(compteur), RIGHT, 15);
   OLED_Display.update();
 
@@ -217,7 +222,7 @@ void Menu() {
 
   delay(1000);
 
-///// LEVEL 2 MENU
+  ///// LEVEL 2 MENU
   EEPROM.get(128, compteur);
 
   Menu_Boucle_State = true;
@@ -227,8 +232,8 @@ void Menu() {
   while (Menu_Boucle_State == true) {
     Read_Rotaty_Encoder();
 
-    Current_Time_Bp = millis();
-    if ((Current_Time_Bp - Previous_Time_Bp) > DEBOUNCE_DELAY) {
+    Current_Time_Dp_Bp = millis();
+    if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
       if (State_SW != Previous_State_SW) {
         Previous_State_SW = State_SW;
         Menu_Boucle_State = false;
@@ -244,21 +249,21 @@ void Menu() {
         } else {
           compteur--;
         }
-        delay(10);
+        delay(5);
       }
     }
 
 
     OLED_Display.clrScr();
     OLED_Display.setFont(SmallFont);
-    OLED_Display.print("SET LOW", RIGHT, 5);
+    OLED_Display.print("Set Low Threshold", RIGHT, 5);
     OLED_Display.print(String(compteur), RIGHT, 15);
     OLED_Display.update();
   }
 
   OLED_Display.clrScr();
   OLED_Display.setFont(SmallFont);
-  OLED_Display.print("LOW SETING", RIGHT, 5);
+  OLED_Display.print("SAVE", RIGHT, 5);
   OLED_Display.print(String(compteur), RIGHT, 15);
   OLED_Display.update();
 
@@ -276,7 +281,9 @@ void Menu() {
 
   delay(1000);
 
-///// RETURN MENU
+  ///// RETURN MENU
+  EEPROM.get(112, INTERLOCK_PRESSURE_HIGH);
+  EEPROM.get(128, INTERLOCK_PRESSURE_LOW);
 
   Read_Rotaty_Encoder();
   Previous_State_SW = State_SW;
@@ -284,6 +291,10 @@ void Menu() {
 
 
 void Read_Rotaty_Encoder() {
+  /**
+  * @fn          Read_Rotaty_Encoder();
+  * @brief       Function Read_Rotaty_Encoder.
+  */
 
   State_SW = digitalRead(Bp_SW);
   State_CLK = digitalRead(Bp_CLK);
@@ -348,11 +359,11 @@ void Pressure_Main() {
   }
 
   // Display Pressure and State on screen
-  Current_Time = millis();
-  if ((Current_Time - Previous_Time) > SCREEN_REFRESH_DELAY) {
+  Current_Time_Dp = millis();
+  if ((Current_Time_Dp - Previous_Time_Dp) > SCREEN_REFRESH_DELAY) {
     digitalWrite(ON_BOARD_LED, HIGH);
 
-    Previous_Time = Current_Time;
+    Previous_Time_Dp = Current_Time_Dp;
     OLED_Display.clrScr();
     OLED_Display.setFont(SmallFont);
     Display_Result(Pressure, 2, 5);
