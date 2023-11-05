@@ -15,9 +15,9 @@
  */
 
 // Libraries import
-#include <ADS1X15.h>   // External ADC ADS1115 - Copyright (c) 2013-2023 Rob Tillaart - MIT licence
-#include <OLED_I2C.h>  // External OLED display - Copyright (c) 2010-2023 Rinky-Dink Electronics, Henning Karlsen - Creative Commons (CC BY-NC-SA 3.0) licence
-#include <EEPROM.h>
+#include <ADS1X15.h>   // External ADC ADS1115 Libraries - Copyright (c) 2013-2023 Rob Tillaart - MIT licence
+#include <OLED_I2C.h>  // External OLED display Libraries - Copyright (c) 2010-2023 Rinky-Dink Electronics, Henning Karlsen - Creative Commons (CC BY-NC-SA 3.0) licence
+#include <EEPROM.h>    // External Arduino EEPROM Libraries
 
 // Librarie config
 ADS1115 ADS(0x48);  // Set ADS1115
@@ -43,7 +43,7 @@ bool Previous_State_CLK;           // Storage of the button CLK line previous st
 bool State_SW;                     // Storage of the button SW line state
 bool State_CLK;                    // Storage of the button CLK line state
 bool State_DT;                     // Storage of the button DT line state
-///////////////////// In EEPROM
+///////////////////// EEPROM Memory
 uint16_t INTERLOCK_PRESSURE_LOW;   //
 uint16_t INTERLOCK_PRESSURE_HIGH;  //
 
@@ -138,23 +138,21 @@ void loop() {
 
     if (State_SW != Previous_State_SW) {
       Previous_State_SW = State_SW;
-      Menu();
+      Menu_Main();
     }
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////// Function for Menu //////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Menu() {
+void Menu_Main() {
 
   /**
   * @fn          Menu();
   * @brief       Function Menu.
   */
-
-  bool Menu_Boucle_State;
-  uint16_t Read_EEPROM;
-  uint16_t compteur;
-
 
   OLED_Display.clrScr();
   OLED_Display.setFont(SmallFont);
@@ -163,123 +161,8 @@ void Menu() {
 
   delay(1000);
 
-  ///// LEVEL 1 MENU
-  EEPROM.get(112, compteur);
-
-  Menu_Boucle_State = true;
-  Read_Rotaty_Encoder();
-  Previous_State_SW = State_SW;
-
-  while (Menu_Boucle_State == true) {
-    Read_Rotaty_Encoder();
-
-    Current_Time_Dp_Bp = millis();
-    if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
-      if (State_SW != Previous_State_SW) {
-        Previous_State_SW = State_SW;
-        Menu_Boucle_State = false;
-      }
-    }
-
-    // Lecture CLK et DT
-    if (State_CLK != Previous_State_CLK) {
-      Previous_State_CLK = State_CLK;
-      if (State_CLK == LOW) {
-        if (State_CLK != State_DT) {
-          compteur++;
-        } else {
-          compteur--;
-        }
-        delay(10);
-      }
-    }
-
-
-    OLED_Display.clrScr();
-    OLED_Display.setFont(SmallFont);
-    OLED_Display.print("Set High Threshold", RIGHT, 5);
-    OLED_Display.print(String(compteur), RIGHT, 15);
-    OLED_Display.update();
-  }
-
-  OLED_Display.clrScr();
-  OLED_Display.setFont(SmallFont);
-  OLED_Display.print("SAVE", RIGHT, 5);
-  OLED_Display.print(String(compteur), RIGHT, 15);
-  OLED_Display.update();
-
-  delay(1000);
-
-  EEPROM.put(112, compteur);
-
-  EEPROM.get(112, Read_EEPROM);
-
-  OLED_Display.clrScr();
-  OLED_Display.setFont(SmallFont);
-  OLED_Display.print("VERIFY", RIGHT, 5);
-  OLED_Display.print(String(Read_EEPROM), RIGHT, 15);
-  OLED_Display.update();
-
-  delay(1000);
-
-  ///// LEVEL 2 MENU
-  EEPROM.get(128, compteur);
-
-  Menu_Boucle_State = true;
-  Read_Rotaty_Encoder();
-  Previous_State_SW = State_SW;
-
-  while (Menu_Boucle_State == true) {
-    Read_Rotaty_Encoder();
-
-    Current_Time_Dp_Bp = millis();
-    if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
-      if (State_SW != Previous_State_SW) {
-        Previous_State_SW = State_SW;
-        Menu_Boucle_State = false;
-      }
-    }
-
-    // Lecture CLK et DT
-    if (State_CLK != Previous_State_CLK) {
-      Previous_State_CLK = State_CLK;
-      if (State_CLK == LOW) {
-        if (State_CLK != State_DT) {
-          compteur++;
-        } else {
-          compteur--;
-        }
-        delay(5);
-      }
-    }
-
-
-    OLED_Display.clrScr();
-    OLED_Display.setFont(SmallFont);
-    OLED_Display.print("Set Low Threshold", RIGHT, 5);
-    OLED_Display.print(String(compteur), RIGHT, 15);
-    OLED_Display.update();
-  }
-
-  OLED_Display.clrScr();
-  OLED_Display.setFont(SmallFont);
-  OLED_Display.print("SAVE", RIGHT, 5);
-  OLED_Display.print(String(compteur), RIGHT, 15);
-  OLED_Display.update();
-
-  delay(1000);
-
-  EEPROM.put(128, compteur);
-
-  EEPROM.get(128, Read_EEPROM);
-
-  OLED_Display.clrScr();
-  OLED_Display.setFont(SmallFont);
-  OLED_Display.print("VERIFY", RIGHT, 5);
-  OLED_Display.print(String(Read_EEPROM), RIGHT, 15);
-  OLED_Display.update();
-
-  delay(1000);
+  Page_Menu(112, "HiTh");
+  Page_Menu(128, "LoTh");
 
   ///// RETURN MENU
   EEPROM.get(112, INTERLOCK_PRESSURE_HIGH);
@@ -287,6 +170,79 @@ void Menu() {
 
   Read_Rotaty_Encoder();
   Previous_State_SW = State_SW;
+}
+
+
+void Page_Menu(uint16_t FI_EEPROM_Address, char FI_String[]) {
+
+  /**
+  * @fn          Page_Menu(FI_EEPROM_Address, FI_String);
+  * @brief       Function Page_Menu.
+  * @param       uint16_t FI_EEPROM_Address, 
+  * @param       char FI_String[], 
+  */
+
+  bool Menu_Boucle_State;
+  uint16_t Read_EEPROM;
+  uint16_t Counter;
+
+  EEPROM.get(FI_EEPROM_Address, Counter);
+
+  Menu_Boucle_State = true;
+  Read_Rotaty_Encoder();
+  Previous_State_SW = State_SW;
+
+  while (Menu_Boucle_State == true) {
+    Read_Rotaty_Encoder();
+
+    Current_Time_Dp_Bp = millis();
+    if ((Current_Time_Dp_Bp - Previous_Time_Dp_Bp) > DEBOUNCE_DELAY) {
+      if (State_SW != Previous_State_SW) {
+        Previous_State_SW = State_SW;
+        Menu_Boucle_State = false;
+      }
+    }
+
+    // Lecture CLK et DT
+    if (State_CLK != Previous_State_CLK) {
+      Previous_State_CLK = State_CLK;
+      if (State_CLK == LOW) {
+        if (State_CLK != State_DT) {
+          Counter++;
+        } else {
+          Counter--;
+        }
+        delay(1);
+      }
+    }
+
+
+    OLED_Display.clrScr();
+    OLED_Display.setFont(SmallFont);
+    OLED_Display.print(String(FI_String), RIGHT, 5);
+    OLED_Display.print(String(Counter), RIGHT, 15);
+    OLED_Display.update();
+  }
+
+  OLED_Display.clrScr();
+  OLED_Display.setFont(SmallFont);
+  OLED_Display.print("SAVE", RIGHT, 5);
+  OLED_Display.print(String(Counter), RIGHT, 15);
+  OLED_Display.update();
+
+  delay(1000);
+
+  EEPROM.put(FI_EEPROM_Address, Counter);
+
+  EEPROM.get(FI_EEPROM_Address, Read_EEPROM);
+
+  OLED_Display.clrScr();
+  OLED_Display.setFont(SmallFont);
+  OLED_Display.print("CHECK", RIGHT, 5);
+  OLED_Display.print(String(Read_EEPROM), RIGHT, 15);
+  OLED_Display.update();
+
+  delay(1000);
 }
 
 
@@ -302,31 +258,10 @@ void Read_Rotaty_Encoder() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Function for Pressure Processing ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void Pressure_Main() {
   /**
   * @fn          Pressure_Main()
